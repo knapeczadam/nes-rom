@@ -1,0 +1,7 @@
+.ZEROPAGE
+nmi_ready:	.res 1
+gamepad:	.res 1
+d_x:		.res 1
+d_y:		.res 1
+
+.exportzp nmi_ready, gamepad, d_x, d_y

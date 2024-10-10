@@ -1,5 +1,8 @@
 .include "constants.incl"
 
+.import oam, palette
+.importzp gamepad, nmi_ready
+
 .segment "HEADER"
 INES_MAPPER 	= 0
 INES_MIRROR 	= 0
@@ -12,19 +15,12 @@ INES_RAM	= 0
 .byte INES_MAPPER & $F0
 .byte $0, $0, $0, $0, $0, $0, $0, $0
 
+.import vblank
+
 .segment "VECTORS"
 .word vblank
 .word reset
 .word irq
-
-.ZEROPAGE
-nmi_ready:	.res 1
-gamepad:	.res 1
-d_x:		.res 1
-d_y:		.res 1
-
-.segment "OAM"
-oam: .res 256
 
 .RODATA
 default_palette:
@@ -38,10 +34,7 @@ default_palette:
 .byte $0F,$12,$22,$32
 
 welcome_txt:
-.byte "I TURNED MYSELF INTO AN NES ROM MORTY", 0
-
-.BSS
-palette: .res 32
+.byte "HELLO WORLD", 0
 
 .segment "TILES"
 .incbin "game.chr"
@@ -105,75 +98,9 @@ wait_vblank2:
 	jmp main
 .endproc
 
-.proc vblank
-	; save registers
-	pha
-	txa
-	pha
-	tya
-	pha
-
-	; Check whether the NMI is ready, skip to end if not
-	lda nmi_ready
-	bne :+
-	jmp end
-:
-
-	cmp #NMI_SIG_RENDERING_OFF 	; Command to turn off next V-Blank
-	bne continue 			; If nmi_ready != 2, we can render.
-
-	; nmi_ready == 2, clear PPU_MASK
-	lda #0
-	sta PPU_MASK
-	ldx #NMI_SIG_CLEAR
-	stx nmi_ready
-	jmp end
-
-continue:
-	ldx #<PPU_ADDR_PALETTE
-	stx PPU_SPRRAM_ADDRESS
-	lda #>oam
-	sta SPRITE_DMA
-
-	lda #%10001000
-	sta PPU_CONTROL
-	lda PPU_STATUS
-
-	; Set PPU address to $3F. This process is a bit strange,
-	; you write the upper and lower byte to this same pointer sequentially.
-	lda #>PPU_ADDR_PALETTE
-	sta PPU_VRAM_ADDRESS2
-	stx PPU_VRAM_ADDRESS2
-
-	ldx #0 		; Using the X register as the loop index.
-transfer_loop:
-	lda palette, x
-	sta PPU_VRAM_IO
-	inx
-	cpx #32		; sizeof(palette)
-	bcc transfer_loop
-
-	; Enable rendering
-	lda #%00011110
-	sta PPU_MASK
-
-	ldx #NMI_SIG_CLEAR
-	stx nmi_ready
-
-end:
-	; pop registers
-	pla
-	tay
-	pla
-	tax
-	pla
-	rti
-.endproc
-
 .proc ppu_signal
 	sta nmi_ready
 
-; Wait for nmi_ready to become NMI_SIG_CLEAR (0)
 loop:
 	lda nmi_ready
 	bne loop
@@ -262,9 +189,9 @@ paletteloop:
 	jsr clear_nametable
 
 	lda PPU_STATUS
-	lda #$20
+	lda #>PPU_ADDR_NT_0
 	sta PPU_VRAM_ADDRESS2
-	lda #$00
+	lda #<PPU_ADDR_NT_0
 	sta PPU_VRAM_ADDRESS2
 
 	ldx #0
@@ -272,7 +199,7 @@ text_loop:
 	lda welcome_txt, x
 	sta PPU_VRAM_IO
 	inx
-	cmp #0
+	cmp #0 ; stop at null terminator
 	beq :+
 	jmp text_loop
 :
