@@ -1,7 +1,7 @@
 .include "constants.incl"
 
 .import oam, palette
-.importzp gamepad, nmi_ready
+.importzp gamepad, nmi_ready, temp16bit_ptr
 
 .segment "HEADER"
 INES_MAPPER 	= 0
@@ -10,7 +10,7 @@ INES_RAM	= 0
 
 .byte "NES", $1A
 .byte $02 		; 16KB PRG bank count
-.byte $01 		; 8KB bank count
+.byte $00 		; CHR RAM (no CHR ROM)
 .byte INES_MIRROR | (INES_RAM << 1) | ((INES_MAPPER & $F) << 4)
 .byte INES_MAPPER & $F0
 .byte $0, $0, $0, $0, $0, $0, $0, $0
@@ -21,6 +21,9 @@ INES_RAM	= 0
 .word vblank
 .word reset
 .word irq
+
+.segment "RODATA"
+tiles_chr: .incbin "game.chr"
 
 .RODATA
 default_palette:
@@ -36,8 +39,28 @@ default_palette:
 welcome_txt:
 .byte "HELLO WORLD", 0
 
-.segment "TILES"
-.incbin "game.chr"
+.segment "CODE"
+.proc copy_tiles_chr
+  lda #<tiles_chr  ; load the source address into a pointer in zero page
+  sta temp16bit_ptr
+  lda #>tiles_chr
+  sta temp16bit_ptr+1
+
+  ldy #0       ; starting index into the first page
+  sty PPU_MASK    ; Turn off rendering just in case
+  sty PPU_VRAM_ADDRESS2 ; Set the destination address high byte
+  sty PPU_VRAM_ADDRESS2 ; Set the destination address low byte
+  ldx #32      ; number of 256-byte pages to copy
+loop:
+  lda (temp16bit_ptr),y  ; copy one byte
+  sta PPU_VRAM_IO
+  iny
+  bne loop  ; repeat until we finish the page
+  inc temp16bit_ptr+1  ; go to the next page
+  dex
+  bne loop  ; repeat until we've copied enough pages
+  rts
+.endproc
 
 .CODE
 irq:
@@ -90,6 +113,9 @@ clear_oam:
 wait_vblank2:
 	bit PPU_STATUS
 	bpl wait_vblank2
+
+    ; Copy CHR tiles into CHR RAM
+	jsr copy_tiles_chr
 
 	; Enable V-Blank
 	lda #%10001000
