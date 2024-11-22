@@ -15,11 +15,11 @@ endif
 
 # Tools
 CA65 := ca65
-CL65 := cl65
+LD65 := ld65
 
 # Flags
 CA65_FLAGS := -t nes
-CL65_FLAGS := -t nes --config game.cfg
+LD65_FLAGS := --config game.cfg
 
 # Targets
 
@@ -32,11 +32,11 @@ $(OUT_FOLDER):
 # 	$(CA65) $(CA65_FLAGS) -l $(FILENAME_BASE).lnk -o $@ $<
 
 $(OUT_FOLDER)/%.o: %.s65 $(OUT_FOLDER)
-	$(CA65) -t nes -o $@ $<
+	$(CA65) -t nes -g -o $@ $<
 
 # Link the object into a NES file
 $(FILENAME_BASE).nes: $(OBJS)
-	$(CL65) $(CL65_FLAGS) -m $(FILENAME_BASE).map -o $@ $(OBJS)
+	$(LD65) $(LD65_FLAGS) -m $(FILENAME_BASE).map --dbgfile $(FILENAME_BASE).dbg -o $@ $(OBJS)
 
 # Clean target
 clean:
