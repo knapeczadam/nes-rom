@@ -23,7 +23,7 @@ INES_RAM	= 0
 .word irq
 
 .segment "RODATA"
-tiles_chr: .incbin "game.chr"
+tiles_chr: .incbin "../data/NESlides.chr"
 
 group_table:
     .byte $0F, $07, $0B, $03

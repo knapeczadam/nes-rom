@@ -1,6 +1,6 @@
 # Variables
-TGT_NAME := game
-CFG_NAME := game
+TGT_NAME := NESlides
+CFG_NAME := NESlides
 
 CFG_DIR := cfg
 SRC_DIR := src
