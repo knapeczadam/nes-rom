@@ -1,46 +1,50 @@
 # Variables
-NAME := ROM
-OUT_FOLDER := out
-FILENAME_BASE := $(OUT_FOLDER)/$(NAME)
-INPUT_FILES := $(wildcard *.s65)
-OBJS = $(addprefix $(OUT_FOLDER)/, $(subst .s65,.o,$(INPUT_FILES)))
+TGT_NAME := game
+CFG_NAME := game
 
-ifeq ($(OS),Windows_NT)
-    RM = rmdir /S /Q
-    MKDIR = mkdir
-else
-    RM = rm -rf
-    MKDIR = mkdir -p
-endif
+CFG_DIR := cfg
+SRC_DIR := src
+OUT_DIR := out
+OBJ_DIR := obj
 
-# Tools
 CA65 := ca65
 LD65 := ld65
 
-# Flags
-CA65_FLAGS := -t nes
-LD65_FLAGS := --config game.cfg
+#----------------------------------------------------------------
 
-# Targets
+# Create the output and object directory if they don't exist yet
+ifeq ($(OS),Windows_NT)
+	RM = rmdir /S /Q
+	MKDIR = mkdir
+else
+	RM = rm -rf
+	MKDIR = mkdir -p
+endif
 
-# Create output directory if not exists
-$(OUT_FOLDER):
-	$(MKDIR) $(OUT_FOLDER)
+$(OBJ_DIR):
+	$(MKDIR) $(OBJ_DIR)
 
-# Assemble .s65 file to object
-# $(FILENAME_BASE).o: $(INPUT_FILES) $(OUT_FOLDER)
-# 	$(CA65) $(CA65_FLAGS) -l $(FILENAME_BASE).lnk -o $@ $<
+$(OUT_DIR):
+	$(MKDIR) $(OUT_DIR)
 
-$(OUT_FOLDER)/%.o: %.s65 $(OUT_FOLDER)
+#----------------------------------------------------------------
+
+# Assemble .s65 files to objects
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.s65 $(OBJ_DIR)
 	$(CA65) -t nes -g -o $@ $<
 
-# Link the object into a NES file
-$(FILENAME_BASE).nes: $(OBJS)
-	$(LD65) $(LD65_FLAGS) -m $(FILENAME_BASE).map --dbgfile $(FILENAME_BASE).dbg -o $@ $(OBJS)
+# Link the object files into an NES file
+OBJ_FILES := $(patsubst $(SRC_DIR)/%.s65,$(OBJ_DIR)/%.o,$(wildcard $(SRC_DIR)/*.s65))
+BASE_TGT := $(OUT_DIR)/$(TGT_NAME)
+TGT := $(BASE_TGT).nes
+$(TGT): $(OBJ_FILES) $(OUT_DIR)
+	$(LD65) -C ${CFG_DIR}/${CFG_NAME}.cfg --dbgfile $(BASE_TGT).dbg -o $@ $(OBJ_FILES)
+
+#----------------------------------------------------------------
 
 # Clean target
 clean:
-	$(RM) $(OUT_FOLDER)
+	$(RM) $(OBJ_DIR) $(OUT_DIR)
 
 # Default target
-all: $(FILENAME_BASE).nes
+all: $(TGT)
