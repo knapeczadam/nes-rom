@@ -1,8 +1,8 @@
 .include "constants.incl"
 
-.import copy_tiles_chr, get_tile_position, test_create_upscale
+.import copy_tiles_chr, write_data_to_chr
 .import oam, palette
-.importzp gamepad, nmi_ready, temp16bit_ptr, temp_8_bit_holder, temp_byte, temp_64_byte_storage, byte_holder
+.importzp gamepad, nmi_ready
 
 .segment "HEADER"
 INES_MAPPER 	= 0
@@ -100,7 +100,8 @@ wait_vblank2:
 	jsr copy_tiles_chr
 	
 	; testing write to CHR RAM
-	jsr test_create_upscale
+	jsr write_data_to_chr
+	; jsr test_create_upscale
 
 	; Enable V-Blank
 	lda #%10001000
@@ -241,51 +242,51 @@ exit_while:
 	; lda #$60              
 	; sta PPU_VRAM_ADDRESS2                 ; Write low byte to PPU address register
 
-;	ldx #255                                ; Just padding
-;padding:
-;	lda #$00
-;	sta PPU_VRAM_IO
-;	dex
-;	cpx #0
-;	beq :+
-;	jmp padding
-;:
-;
-;	lda #$C0
-;	sta PPU_VRAM_IO
-;
-;	lda #$C2
-;	sta PPU_VRAM_IO
-;
-;    lda #$C0
-;	sta PPU_VRAM_IO
-;
-;	lda #$C2
-;	sta PPU_VRAM_IO
-;
-;    ldx #28                                ; Just padding
-;more_padding:
-;	lda #$00
-;	sta PPU_VRAM_IO
-;	dex
-;	cpx #0
-;	beq :+
-;	jmp more_padding
-;:
-;
-;	lda #$C1
-;	sta PPU_VRAM_IO
-;
-;	lda #$C3
-;	sta PPU_VRAM_IO
-;
-;	lda #$C1
-;	sta PPU_VRAM_IO
-;
-;	lda #$C3
-;	sta PPU_VRAM_IO
+    ldx #255                                ; Just padding
+padding:
+	lda #$10
+	sta PPU_VRAM_IO
+	dex
+	cpx #0
+	beq :+
+	jmp padding
+:
 
-	; End temp Code for upscale
+	lda #$78
+	sta PPU_VRAM_IO
+
+	lda #$7A
+	sta PPU_VRAM_IO
+
+    lda #$78
+	sta PPU_VRAM_IO
+
+	lda #$7A
+	sta PPU_VRAM_IO
+
+    ldx #28                                ; Just padding
+more_padding:
+	lda #$00
+	sta PPU_VRAM_IO
+	dex
+	cpx #0
+	beq :+
+	jmp more_padding
+:
+
+    lda #$79
+	sta PPU_VRAM_IO
+
+	lda #$7B
+	sta PPU_VRAM_IO
+
+    lda #$79
+	sta PPU_VRAM_IO
+
+	lda #$7B
+	sta PPU_VRAM_IO
+
+    ; End temp Code for upscale
 
 	jsr ppu_update
 

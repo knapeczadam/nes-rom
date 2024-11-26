@@ -47,7 +47,7 @@ continue:
 	stx PPU_VRAM_ADDRESS2
 
 	lda PPU_STATUS
-	lda #%10001000
+	lda #%10011000 
 	sta PPU_CONTROL
 
 	; Reset scroll

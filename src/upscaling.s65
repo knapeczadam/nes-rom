@@ -1,6 +1,6 @@
 .include "constants.incl"
 
-.importzp temp16bit_ptr, temp_8_bit_holder, temp_64_byte_storage, temp_byte, byte_holder
+.importzp temp16bit_ptr, temp_8_bit_holder, temp_64_byte_storage, temp_byte, byte_holder, temp_address_holder
 
 .RODATA
 group_table:
@@ -10,25 +10,55 @@ tiles_chr: .incbin "../data/NESlides.chr"
 
 .CODE
 .proc copy_tiles_chr
-  lda #<tiles_chr                           ; load the source address into a pointer in zero page
+  lda #<tiles_chr                       ; load the source address into a pointer in zero page
   sta temp16bit_ptr
   lda #>tiles_chr
   sta temp16bit_ptr+1
 
-  ldy #0                                    ; starting index into the first page
-  sty PPU_MASK                              ; Turn off rendering just in case
-  sty PPU_VRAM_ADDRESS2                     ; Set the destination address high byte
-  sty PPU_VRAM_ADDRESS2                     ; Set the destination address low byte
-  ldx #32                                   ; number of 256-byte pages to copy
+  ldy #0                                ; starting index into the first page
+  sty PPU_MASK                          ; Turn off rendering just in case
+  sty PPU_VRAM_ADDRESS2                 ; Set the destination address high byte
+  sty PPU_VRAM_ADDRESS2                 ; Set the destination address low byte
+  ldx #32                               ; number of 256-byte pages to copy
 loop:
-  lda (temp16bit_ptr),y                     ; copy one byte
+  lda (temp16bit_ptr),y                 ; copy one byte
   sta PPU_VRAM_IO
   iny
-  bne loop                                  ; repeat until we finish the page
-  inc temp16bit_ptr+1                       ; go to the next page
+  bne loop                              ; repeat until we finish the page
+  inc temp16bit_ptr+1                   ; go to the next page
   dex
-  bne loop                                  ; repeat until we've copied enough pages
+  bne loop                              ; repeat until we've copied enough pages
   rts
+.endproc
+
+.proc copy_lowercase_text
+; This copies the lower case letters to the Second Pattern Table (actually it copies the two lines containing the letters because math is hard :cry:)
+  lda #<tiles_chr                       ; load the source address into a pointer in zero page
+  sta temp16bit_ptr
+  lda #>tiles_chr
+  clc                                   ; Clear the carry for addition
+  adc #$04                              ; Add 4 so we start on the 4th row
+  sta temp16bit_ptr+1
+  
+  lda #0
+  sta PPU_MASK                          ; Turn off rendering just in case
+  lda #$14                              ; High byte address for the second pattern table of the position for the letter A (#$10 + high nibble of "A" (#$41))
+  sta PPU_VRAM_ADDRESS2                 ; Set the destination address high byte
+  lda #$00                              ; Low byte address for the second pattern table of the position for the letter A (#$00 + low nibble of "A" (#$41) (low nibble is #$10 this is important because one tiles stores 16bytes so if we want to start at A we need to add 16 not 1))
+  sta PPU_VRAM_ADDRESS2                 ; Set the destination address low byte
+  
+  ldy #0                                
+  ldx #2                                ; Number of rows to copy
+loop:
+  lda (temp16bit_ptr),y                 ; Copy one byte
+  sta PPU_VRAM_IO                       ; Store it in the patter table at the previously given address
+  iny                                   ; Increase Y
+  ; cpy #$FF                              ; Compare it 255 otherwise it will only be equal to zero on 255 + 1 copying one extra byte of data. Which would not be a problem if we copied the whole table
+  bne loop                              ; If Y != 255 then repeat
+  inc temp16bit_ptr+1                   ; Go to the next row
+  dex                                   ; Decrease the row count
+  bne loop                              ; If X = 0 then we copied all the rows we want
+  rts                                   ; return
 .endproc
 
 .proc get_tile_position
@@ -163,11 +193,35 @@ third_check_d_flag_clear:
 .endproc
 
 .proc temp_map_new_VRAM_address
-; Temporary code to write to new CHR RAM address, this should be replaced by proper mapping for now I just hard code one location
-; Set the target PPU VRAM address (temporary code we need a map to know where we can write the info in CHR RAM here I'm hard coding it to start at adress 0C00)
-  lda #$0C              
+; Set the target PPU VRAM address, we currently calculate the mapping as such lower case stay the same so uppcase letter are like so: #$60 + (tile value - #$41) x 4
+; That way we start above the lower case text and account for the the 4tiles they each take
+;*********************************************************************************************
+; NEED TO ADD A CHECK FOR NON-ALPHABET TILES, THIS MAPPER ONLY COMPATIBLE FOR UPSCALED LETTERS
+;*********************************************************************************************
+  lda temp_address_holder               ; Load the original address of the tile
+  sec                                   ; Ensure carry is set for subtraction
+  sbc #$41                              ; Subtract #$41 from the tile value
+  asl                                   ; Multiply by 2 (shift left once)
+  asl                                   ; Multiply by 4 (shift left again)
+  clc                                   ; Clear carry for addition
+  adc #$60                              ; Add #$60 to the result
+
+  ; Extract and rearrange the nibbles
+  tay                                   ; Store the result temporarily in Y
+  and #$F0                              ; Isolate the high nibble
+  lsr                                   ; Shift the high nibble to the low nibble position
+  lsr                                   ; Repeat
+  lsr                                   ; Repeat
+  lsr                                   ; Repeat
+  ora #$10                              ; Combine with #$10 to write to the high byte of PPU address
   sta PPU_VRAM_ADDRESS2                 ; Write high byte to PPU address register
-  lda #$00              
+
+  tya                                   ; Reload the full result from Y
+  and #$0F                              ; Isolate the low nibble
+  asl                                   ; Shift low nibble to the high nibble position
+  asl                                   ; Repeat
+  asl                                   ; Repeat
+  asl                                   ; Repeat
   sta PPU_VRAM_ADDRESS2                 ; Write low byte to PPU address register
 
   ldx #$40                              ; How many bits we need to transfer from ZP to VRAM
@@ -185,7 +239,8 @@ loop:
 
 .proc test_create_upscale
 
-  lda #$47                              ; Load the value $59 into the accumulator this will be replaced by reading whatever text we want
+  ; lda #$47                              ; Load the value $59 into the accumulator this will be replaced by reading whatever text we want
+  sta temp_address_holder               ; Store the address of the tile for mapping later
   jsr get_tile_position                 ; Jump to subroutine to Get X and Y of the tile
 
   ; Load the source address of tiles_chr into a temporary pointer in zero-page
@@ -238,4 +293,25 @@ copy_loop:
   rts                                   ; Return from the subroutine
 .endproc
 
-.export copy_tiles_chr, get_tile_position, test_create_upscale
+.proc write_data_to_chr
+; Loop thorugh all 26 letters copy then and upscale them
+  ldx #0                                ; Initialize X to iterate over the 26 letters
+:
+  stx $01                               ; Load X in ZP for addition
+  txa                                   ; Transfer X to A to push on stack
+  pha                                   ; Push A on the stack 
+  clc                                   ; Clear carry for addition
+  lda #$41                              ; Load first letter location "A"
+  adc $01                               ; Add X to the result
+  jsr test_create_upscale               ; Upscale the letter
+  pla                                   ; Get X back from the stack
+  tax                                   ; Transfer it to X
+  inx                                   ; Increase X
+  cpx #$1A                              ; Is X = 26?
+  bne :-                                ; If not loop back
+
+  jsr copy_lowercase_text               ; Copy the lower case letters to the table
+
+  rts
+.endproc
+.export copy_tiles_chr, write_data_to_chr
