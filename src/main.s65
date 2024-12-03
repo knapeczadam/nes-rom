@@ -35,7 +35,14 @@ default_palette:
 .byte $0F,$12,$22,$32
 
 welcome_txt:
-.byte "HELLO WORLD", 0
+.byte "ACCORDING TO ALL KNOWN LAWS", NEWLINE
+.byte "OF AVIATION, A BEE SHOULD NOT", NEWLINE
+.byte "BE ABLE TO FLY. ITS WINGS ARE", NEWLINE
+.byte "TOO SMALL TO GET ITS FAT BODY", NEWLINE
+.byte "OFF THE GROUND. THE BEE FLIES", NEWLINE
+.byte "ANYWAY BECAUSE BEES DON'T CARE", NEWLINE
+.byte "WHAT HUMANS THINK IS IMPOSSIBLE.", NEWLINE, NULL_TERM
+;.byte "YELLOW, BLACK, YELLOW, BLACK.", NEWLINE, 0
 
 .CODE
 irq:
@@ -199,11 +206,30 @@ paletteloop:
 	sta PPU_VRAM_ADDRESS2
 
 	ldx #0
+	ldy #0			; Character index on curent line
 text_loop:
 	lda welcome_txt, x
-	sta PPU_VRAM_IO
 	inx
-	cmp #0 ; stop at null terminator
+	cmp #NEWLINE
+	beq while_prepare	; Check if newline, if so, start newline logic.
+	sta PPU_VRAM_IO
+	iny			; ++currentLineChar;
+	jmp :+
+
+while_prepare:
+	lda #' '		; Load space into A for writing
+	; while (Y++ < MAX_LINE_CHARS - 1) write(' ');
+while:
+	cpy #MAX_LINE_CHARS
+	bcs exit_while		; Break out of while loop if Y >= MAX_LINE_CHARS - 1
+	sta PPU_VRAM_IO
+	iny
+	jmp while
+
+exit_while:
+	ldy #0			; Clear the current line character index
+:
+	cmp #NULL_TERM		; stop at null terminator
 	beq :+
 	jmp text_loop
 :
@@ -211,64 +237,56 @@ text_loop:
 	; Temporary code to show the upscaled Letter
 	; lda PPU_STATUS
 	; lda #$07              
-    ; sta PPU_VRAM_ADDRESS2                 ; Write high byte to PPU address register
-    ; lda #$60              
-    ; sta PPU_VRAM_ADDRESS2                 ; Write low byte to PPU address register
+	; sta PPU_VRAM_ADDRESS2                 ; Write high byte to PPU address register
+	; lda #$60              
+	; sta PPU_VRAM_ADDRESS2                 ; Write low byte to PPU address register
 
-    ldx #255                                ; Just padding
-padding:
-	lda #$00
-	sta PPU_VRAM_IO
-	dex
-	cpx #0
-	beq :+
-	jmp padding
-:
+;	ldx #255                                ; Just padding
+;padding:
+;	lda #$00
+;	sta PPU_VRAM_IO
+;	dex
+;	cpx #0
+;	beq :+
+;	jmp padding
+;:
+;
+;	lda #$C0
+;	sta PPU_VRAM_IO
+;
+;	lda #$C2
+;	sta PPU_VRAM_IO
+;
+;    lda #$C0
+;	sta PPU_VRAM_IO
+;
+;	lda #$C2
+;	sta PPU_VRAM_IO
+;
+;    ldx #28                                ; Just padding
+;more_padding:
+;	lda #$00
+;	sta PPU_VRAM_IO
+;	dex
+;	cpx #0
+;	beq :+
+;	jmp more_padding
+;:
+;
+;	lda #$C1
+;	sta PPU_VRAM_IO
+;
+;	lda #$C3
+;	sta PPU_VRAM_IO
+;
+;	lda #$C1
+;	sta PPU_VRAM_IO
+;
+;	lda #$C3
+;	sta PPU_VRAM_IO
 
-	lda #$C0
-	sta PPU_VRAM_IO
+	; End temp Code for upscale
 
-	lda #$C2
-	sta PPU_VRAM_IO
-
-    lda #$C0
-	sta PPU_VRAM_IO
-
-	lda #$C2
-	sta PPU_VRAM_IO
-
-    ldx #28                                ; Just padding
-more_padding:
-	lda #$00
-	sta PPU_VRAM_IO
-	dex
-	cpx #0
-	beq :+
-	jmp more_padding
-:
-
-    lda #$C1
-	sta PPU_VRAM_IO
-
-	lda #$C3
-	sta PPU_VRAM_IO
-
-    lda #$C1
-	sta PPU_VRAM_IO
-
-	lda #$C3
-	sta PPU_VRAM_IO
-
-; End temp Code for upscale
-
-	;lda #180
-	;sta oam
-	;lda #120
-	;sta oam + 3
-	;lda #1
-	;sta oam + 1
-	;lda #0
-	;sta oam + 2
 	jsr ppu_update
 
 main_loop:
