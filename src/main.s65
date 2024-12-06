@@ -2,7 +2,8 @@
 
 .import copy_tiles_chr, write_data_to_chr
 .import oam, palette
-.importzp gamepad, nmi_ready, gamepad_released, temp_byte
+.importzp gamepad, nmi_ready
+.import load_bullet, move_bullet, gamepad_poll, find_bg_tile_position
 
 .segment "HEADER"
 INES_MAPPER 	= 0
@@ -103,6 +104,8 @@ wait_vblank2:
 	jsr write_data_to_chr
 	; jsr test_create_upscale
 
+    jsr load_bullet                         ; Call load_bullet subroutine to load the bullet into OAM-RAM
+
 	; Enable V-Blank
 	lda #%10001000
 	sta PPU_CONTROL
@@ -165,40 +168,6 @@ loop:
 	rts
 .endproc
 
-.proc gamepad_poll
-	lda gamepad
-	pha ;push on the stack the current stored value of gamepad before changes
-
-	; strobe the gamepad to latch current button state
-	lda #1
-	sta JOYPAD1
-	lda #0
-	sta JOYPAD1
-
-	; read 8 bytes from the interface at $4016
-	ldx #8
-loop:
-	pha
-	lda JOYPAD1
-	; combine low two bits and store in carry bit
-	and #%00000011
-	cmp #%00000001
-	pla
-	; rotate carry into gamepad variable
-	ror
-	dex
-	bne loop
-
-	sta gamepad
-	pla 
-	sta temp_byte
-	eor gamepad
-	and temp_byte
-	sta gamepad_released 
-
-	rts
-.endproc
-
 .proc main
 	ldx #0
 
@@ -253,9 +222,9 @@ exit_while:
 	; lda #$60              
 	; sta PPU_VRAM_ADDRESS2                 ; Write low byte to PPU address register
 
-    ldx #255                                ; Just padding
+    ldx #240                                ; Just padding
 padding:
-	lda #$10
+	lda #$00
 	sta PPU_VRAM_IO
 	dex
 	cpx #0
@@ -305,6 +274,10 @@ main_loop:
 	lda nmi_ready
 	; cmp #0 unnecessary because lda already sets this flag based on the value
 	bne main_loop
+
+ 	jsr gamepad_poll ; read the gamepad
+    jsr move_bullet
+    jsr find_bg_tile_position
 
 	lda #1
 	sta nmi_ready
