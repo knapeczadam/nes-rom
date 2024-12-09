@@ -1,6 +1,7 @@
-.include "constants.incl"
-.import oam
-.importzp gamepad, gamepad_released, temp_byte, bullet_info, background_tile_ptr
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ; Sprite Attribute Byte:
 ;-----------------------
 ; 76543210
@@ -16,8 +17,6 @@ bullet_data:
 .byte $50,  $04,  %00000000,  $50           ; OAM sprite 1 at (x: 16, y: 16)
 
 ;; TODO SET UP VARIABLES FOR THE POSITIONS
-
-.CODE
 .proc gamepad_poll
 	lda gamepad                            ; Load current state of gamepad to check button press/released
 	pha                                    ; Push it on the stack
@@ -219,5 +218,3 @@ multiply_loop:                              ; Else loop multiply
 
 	rts
 .endproc
-
-.export load_bullet, gamepad_poll, move_bullet, find_bg_tile_position, clear_background_tile

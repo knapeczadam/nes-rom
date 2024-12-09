@@ -1,15 +1,6 @@
-.include "constants.incl"
-
-.importzp nmi_ready
-.import clear_background_tile
-
-.segment "OAM"
-oam: .res 256
-
-.BSS
-palette: .res 32
-
-.CODE
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; 7  bit  0
 ; ---- ----
@@ -27,7 +18,7 @@ palette: .res 32
 ; |          (0: read backdrop from EXT pins; 1: output color on EXT pins)
 ; +--------- Vblank NMI enable (0: off, 1: on)
 
-.proc vblank
+.proc nmi
 	; save registers
 	pha
 	txa
@@ -101,5 +92,3 @@ end:
 	pla
 	rti
 .endproc
-
-.export vblank, oam, palette
