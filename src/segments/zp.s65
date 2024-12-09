@@ -1,4 +1,8 @@
-.ZEROPAGE
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+.segment "ZEROPAGE"
+
 nmi_ready:	    .res 1
 gamepad:	    .res 1
 gamepad_released: 	.res 1	        ; stores gamepad values released this frame
@@ -24,5 +28,3 @@ bullet_info: .res 1
 ; ||+------ 
 ; |+------- 
 ; +-------- Did a collision occur? 0 == False / 1 == True 
-
-.exportzp nmi_ready, gamepad, d_x, d_y, temp16bit_ptr, temp_8_bit_holder, temp_byte, temp_64_byte_storage, byte_holder, temp_address_holder, gamepad_released, bullet_info, background_tile_ptr

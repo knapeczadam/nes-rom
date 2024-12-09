@@ -1,14 +1,7 @@
-.include "constants.incl"
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-.importzp temp16bit_ptr, temp_8_bit_holder, temp_64_byte_storage, temp_byte, byte_holder, temp_address_holder
-
-.RODATA
-group_table:
-    .byte $0F, $07, $0B, $03
-
-tiles_chr: .incbin "../data/NESlides.chr"
-
-.CODE
 .proc copy_tiles_chr
   lda #<tiles_chr                       ; load the source address into a pointer in zero page
   sta temp16bit_ptr
@@ -314,4 +307,3 @@ copy_loop:
 
   rts
 .endproc
-.export copy_tiles_chr, write_data_to_chr
